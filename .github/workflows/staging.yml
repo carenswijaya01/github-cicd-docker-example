@@ -27,7 +27,7 @@ jobs:
           echo "VERSION is $VERSION"
 
       - name: Build Docker Image
-        run: docker build . -t ghcr.io/${{ github.actor }}/github-cicd-docker-example:$VERSION .
+        run: docker build -t ghcr.io/${{ github.actor }}/github-cicd-docker-example:$VERSION .
 
       - name: Push Docker Image
         run: docker push ghcr.io/${{ github.actor }}/github-cicd-docker-example:$VERSION
