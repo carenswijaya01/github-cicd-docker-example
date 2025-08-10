@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: test-app
+    container_name: test-app
+    ports:
+      - 3000:3000
+    networks:
+      - net
+
+networks:
+  net:
+    driver: bridge

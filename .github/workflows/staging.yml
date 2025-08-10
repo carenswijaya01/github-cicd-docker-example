@@ -1,0 +1,52 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Set Version
+        run: |
+          # Ambil VERSION dari secret, jika tidak ada gunakan default 1.0.0
+          VERSION="${{ vars.VERSION }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="1.0.0"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION is $VERSION"
+
+      - name: Build Docker Image
+        run: docker build . -t ghcr.io/${{ github.actor }}/github-cicd-docker-example:$VERSION .
+
+      - name: Push Docker Image
+        run: docker push ghcr.io/${{ github.actor }}/github-cicd-docker-example:$VERSION
+
+      - name: Tag Image as Latest and Push
+        run: |
+          docker image tag ghcr.io/${{ github.actor }}/github-cicd-docker-example:$VERSION ghcr.io/${{ github.actor }}/github-cicd-docker-example:latest
+          docker push ghcr.io/${{ github.actor }}/github-cicd-docker-example:latest
+
+      # ---------------------------
+      # Deploy to staging server
+      # ---------------------------
+      - name: Deploy to Staging
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd "${{ secrets.STAGING_PATH }}"
+            docker compose pull
+            docker compose restart
